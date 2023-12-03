@@ -1,0 +1,535 @@
+#include <vector>
+#include <string>
+
+enum CommentOptions {
+    SINGL_LINE,
+    MULTI_LINE
+};
+
+class LangOptionsBase {
+    friend class CompilerInvocation;
+    friend class CompilerInvocationBase;
+
+public:
+    // Define simple language options (with no accessors).
+#define LANGOPT(Name, Bits, Default, Description) unsigned Name : Bits;
+#define ENUM_LANGOPT(Name, Type, Bits, Default, Description)
+
+protected:
+    // Define language options of enumeration type. These are private, and will
+    // have accessors (below).
+#define LANGOPT(Name, Bits, Default, Description)
+#define ENUM_LANGOPT(Name, Type, Bits, Default, Description) \
+  unsigned Name : Bits;
+};
+
+/// In the Microsoft ABI, this controls the placement of virtual displacement
+/// members used to implement virtual inheritance.
+enum class MSVtorDispMode { Never, ForVBaseOverride, ForVFTable };
+
+/// Shader programs run in specific pipeline stages.
+/// The order of these values matters, and must be kept in sync with the
+/// Triple Environment enum in llvm::Triple. The ordering is enforced in
+///  static_asserts in Triple.cpp and in clang/Basic/HLSLRuntime.h.
+enum class ShaderStage {
+    Pixel = 0,
+    Vertex,
+    Geometry,
+    Hull,
+    Domain,
+    Compute,
+    Library,
+    RayGeneration,
+    Intersection,
+    AnyHit,
+    ClosestHit,
+    Miss,
+    Callable,
+    Mesh,
+    Amplification,
+    Invalid,
+};
+
+enum Visibility {
+    /// Objects with "hidden" visibility are not seen by the dynamic
+    /// linker.
+    HiddenVisibility,
+
+    /// Objects with "protected" visibility are seen by the dynamic
+    /// linker but always dynamically resolve to an object within this
+    /// shared object.
+    ProtectedVisibility,
+
+    /// Objects with "default" visibility are seen by the dynamic linker
+    /// and act like normal objects.
+    DefaultVisibility
+};
+
+enum class RoundingMode : int8_t {
+    // Rounding mode defined in IEEE-754.
+    TowardZero = 0,    ///< roundTowardZero.
+    NearestTiesToEven = 1,    ///< roundTiesToEven.
+    TowardPositive = 2,    ///< roundTowardPositive.
+    TowardNegative = 3,    ///< roundTowardNegative.
+    NearestTiesToAway = 4,    ///< roundTiesToAway.
+
+    // Special values.
+    Dynamic = 7,    ///< Denotes mode unknown at compile time.
+    Invalid = -1    ///< Denotes invalid value.
+};
+
+
+/// Keeps track of the various options that can be
+/// enabled, which controls the dialect of C or C++ that is accepted.
+class LangOptions : public LangOptionsBase {
+public:
+    using Visibility = Visibility;
+    using RoundingMode = RoundingMode;
+
+    enum GCMode { NonGC, GCOnly, HybridGC };
+    enum StackProtectorMode { SSPOff, SSPOn, SSPStrong, SSPReq };
+
+    // Automatic variables live on the stack, and when trivial they're usually
+    // uninitialized because it's undefined behavior to use them without
+    // initializing them.
+    enum class TrivialAutoVarInitKind { Uninitialized, Zero, Pattern };
+
+    enum SignedOverflowBehaviorTy {
+        // Default C standard behavior.
+        SOB_Undefined,
+
+        // -fwrapv
+        SOB_Defined,
+
+        // -ftrapv
+        SOB_Trapping
+    };
+
+    // FIXME: Unify with TUKind.
+    enum CompilingModuleKind {
+        /// Not compiling a module interface at all.
+        CMK_None,
+
+        /// Compiling a module from a module map.
+        CMK_ModuleMap,
+
+        /// Compiling a module header unit.
+        CMK_HeaderUnit,
+
+        /// Compiling a C++ modules interface unit.
+        CMK_ModuleInterface,
+    };
+
+    enum PragmaMSPointersToMembersKind {
+        PPTMK_BestCase,
+        PPTMK_FullGeneralitySingleInheritance,
+        PPTMK_FullGeneralityMultipleInheritance,
+        PPTMK_FullGeneralityVirtualInheritance
+    };
+
+
+    enum DefaultCallingConvention {
+        DCC_None,
+        DCC_CDecl,
+        DCC_FastCall,
+        DCC_StdCall,
+        DCC_VectorCall,
+        DCC_RegCall,
+        DCC_RtdCall
+    };
+
+    enum AddrSpaceMapMangling { ASMM_Target, ASMM_On, ASMM_Off };
+
+    // Corresponds to _MSC_VER
+    enum MSVCMajorVersion {
+        MSVC2010 = 1600,
+        MSVC2012 = 1700,
+        MSVC2013 = 1800,
+        MSVC2015 = 1900,
+        MSVC2017 = 1910,
+        MSVC2017_5 = 1912,
+        MSVC2017_7 = 1914,
+        MSVC2019 = 1920,
+        MSVC2019_5 = 1925,
+        MSVC2019_8 = 1928,
+    };
+
+    enum SYCLMajorVersion {
+        SYCL_None,
+        SYCL_2017,
+        SYCL_2020,
+        // The "default" SYCL version to be used when none is specified on the
+        // frontend command line.
+        SYCL_Default = SYCL_2020
+    };
+
+    enum HLSLLangStd {
+        HLSL_Unset = 0,
+        HLSL_2015 = 2015,
+        HLSL_2016 = 2016,
+        HLSL_2017 = 2017,
+        HLSL_2018 = 2018,
+        HLSL_2021 = 2021,
+        HLSL_202x = 2029,
+    };
+
+    /// Clang versions with different platform ABI conformance.
+    enum class ClangABI {
+        /// Attempt to be ABI-compatible with code generated by Clang 3.8.x
+        /// (SVN r257626). This causes <1 x long long> to be passed in an
+        /// integer register instead of an SSE register on x64_64.
+        Ver3_8,
+
+        /// Attempt to be ABI-compatible with code generated by Clang 4.0.x
+        /// (SVN r291814). This causes move operations to be ignored when
+        /// determining whether a class type can be passed or returned directly.
+        Ver4,
+
+        /// Attempt to be ABI-compatible with code generated by Clang 6.0.x
+        /// (SVN r321711). This causes determination of whether a type is
+        /// standard-layout to ignore collisions between empty base classes
+        /// and between base classes and member subobjects, which affects
+        /// whether we reuse base class tail padding in some ABIs.
+        Ver6,
+
+        /// Attempt to be ABI-compatible with code generated by Clang 7.0.x
+        /// (SVN r338536). This causes alignof (C++) and _Alignof (C11) to be
+        /// compatible with __alignof (i.e., return the preferred alignment)
+        /// rather than returning the required alignment.
+        Ver7,
+
+        /// Attempt to be ABI-compatible with code generated by Clang 9.0.x
+        /// (SVN r351319). This causes vectors of __int128 to be passed in memory
+        /// instead of passing in multiple scalar registers on x86_64 on Linux and
+        /// NetBSD.
+        Ver9,
+
+        /// Attempt to be ABI-compatible with code generated by Clang 11.0.x
+        /// (git 2e10b7a39b93). This causes clang to pass unions with a 256-bit
+        /// vector member on the stack instead of using registers, to not properly
+        /// mangle substitutions for template names in some cases, and to mangle
+        /// declaration template arguments without a cast to the parameter type
+        /// even when that can lead to mangling collisions.
+        Ver11,
+
+        /// Attempt to be ABI-compatible with code generated by Clang 12.0.x
+        /// (git 8e464dd76bef). This causes clang to mangle lambdas within
+        /// global-scope inline variables incorrectly.
+        Ver12,
+
+        /// Attempt to be ABI-compatible with code generated by Clang 14.0.x.
+        /// This causes clang to:
+        ///   - mangle dependent nested names incorrectly.
+        ///   - make trivial only those defaulted copy constructors with a
+        ///     parameter-type-list equivalent to the parameter-type-list of an
+        ///     implicit declaration.
+        Ver14,
+
+        /// Attempt to be ABI-compatible with code generated by Clang 15.0.x.
+        /// This causes clang to:
+        ///   - Reverse the implementation for DR692, DR1395 and DR1432.
+        ///   - pack non-POD members of packed structs.
+        ///   - consider classes with defaulted special member functions non-pod.
+        Ver15,
+
+        /// Attempt to be ABI-compatible with code generated by Clang 17.0.x.
+        /// This causes clang to revert some fixes to its implementation of the
+        /// Itanium name mangling scheme, with the consequence that overloaded
+        /// function templates are mangled the same if they differ only by:
+        ///   - constraints
+        ///   - whether a non-type template parameter has a deduced type
+        ///   - the parameter list of a template template parameter
+        Ver17,
+
+        /// Conform to the underlying platform's C and C++ ABIs as closely
+        /// as we can.
+        Latest
+    };
+
+    enum class CoreFoundationABI {
+        /// No interoperability ABI has been specified
+        Unspecified,
+        /// CoreFoundation does not have any language interoperability
+        Standalone,
+        /// Interoperability with the ObjectiveC runtime
+        ObjectiveC,
+        /// Interoperability with the latest known version of the Swift runtime
+        Swift,
+        /// Interoperability with the Swift 5.0 runtime
+        Swift5_0,
+        /// Interoperability with the Swift 4.2 runtime
+        Swift4_2,
+        /// Interoperability with the Swift 4.1 runtime
+        Swift4_1,
+    };
+
+    enum FPModeKind {
+        // Disable the floating point pragma
+        FPM_Off,
+
+        // Enable the floating point pragma
+        FPM_On,
+
+        // Aggressively fuse FP ops (E.g. FMA) disregarding pragmas.
+        FPM_Fast,
+
+        // Aggressively fuse FP ops and honor pragmas.
+        FPM_FastHonorPragmas
+    };
+
+    /// Possible floating point exception behavior.
+    enum FPExceptionModeKind {
+        /// Assume that floating-point exceptions are masked.
+        FPE_Ignore,
+        /// Transformations do not cause new exceptions but may hide some.
+        FPE_MayTrap,
+        /// Strictly preserve the floating-point exception semantics.
+        FPE_Strict,
+        /// Used internally to represent initial unspecified value.
+        FPE_Default
+    };
+
+    /// Possible float expression evaluation method choices.
+    enum FPEvalMethodKind {
+        /// The evaluation method cannot be determined or is inconsistent for this
+        /// target.
+        FEM_Indeterminable = -1,
+        /// Use the declared type for fp arithmetic.
+        FEM_Source = 0,
+        /// Use the type double for fp arithmetic.
+        FEM_Double = 1,
+        /// Use extended type for fp arithmetic.
+        FEM_Extended = 2,
+        /// Used only for FE option processing; this is only used to indicate that
+        /// the user did not specify an explicit evaluation method on the command
+        /// line and so the target should be queried for its default evaluation
+        /// method instead.
+        FEM_UnsetOnCommandLine = 3
+    };
+
+    enum ExcessPrecisionKind { FPP_Standard, FPP_Fast, FPP_None };
+
+    /// Possible exception handling behavior.
+    enum class ExceptionHandlingKind { None, SjLj, WinEH, DwarfCFI, Wasm };
+
+    enum class LaxVectorConversionKind {
+        /// Permit no implicit vector bitcasts.
+        None,
+        /// Permit vector bitcasts between integer vectors with different numbers
+        /// of elements but the same total bit-width.
+        Integer,
+        /// Permit vector bitcasts between all vectors with the same total
+        /// bit-width.
+        All,
+    };
+
+    enum class AltivecSrcCompatKind {
+        // All vector compares produce scalars except vector pixel and vector bool.
+        // The types vector pixel and vector bool return vector results.
+        Mixed,
+        // All vector compares produce vector results as in GCC.
+        GCC,
+        // All vector compares produce scalars as in XL.
+        XL,
+        // Default clang behaviour.
+        Default = Mixed,
+    };
+
+    enum class SignReturnAddressScopeKind {
+        /// No signing for any function.
+        None,
+        /// Sign the return address of functions that spill LR.
+        NonLeaf,
+        /// Sign the return address of all functions,
+        All
+    };
+
+    enum class SignReturnAddressKeyKind {
+        /// Return address signing uses APIA key.
+        AKey,
+        /// Return address signing uses APIB key.
+        BKey
+    };
+
+    enum class ThreadModelKind {
+        /// POSIX Threads.
+        POSIX,
+        /// Single Threaded Environment.
+        Single
+    };
+
+    enum class ExtendArgsKind {
+        /// Integer arguments are sign or zero extended to 32/64 bits
+        /// during default argument promotions.
+        ExtendTo32,
+        ExtendTo64
+    };
+
+    enum class GPUDefaultStreamKind {
+        /// Legacy default stream
+        Legacy,
+        /// Per-thread default stream
+        PerThread,
+    };
+
+    enum class DefaultVisiblityExportMapping {
+        None,
+        /// map only explicit default visibilities to exported
+        Explicit,
+        /// map all default visibilities to exported
+        All,
+    };
+
+    enum class StrictFlexArraysLevelKind {
+        /// Any trailing array member is a FAM.
+        Default = 0,
+        /// Any trailing array member of undefined, 0, or 1 size is a FAM.
+        OneZeroOrIncomplete = 1,
+        /// Any trailing array member of undefined or 0 size is a FAM.
+        ZeroOrIncomplete = 2,
+        /// Any trailing array member of undefined size is a FAM.
+        IncompleteOnly = 3,
+    };
+
+public:
+    /// The used language standard.
+
+    /// Set of enabled sanitizers.
+    /// Is at least one coverage instrumentation type enabled.
+    bool SanitizeCoverage = false;
+
+    /// Paths to files specifying which objects
+    /// (files, functions, variables) should not be instrumented.
+    std::vector<std::string> NoSanitizeFiles;
+
+    /// Paths to the XRay "always instrument" files specifying which
+    /// objects (files, functions, variables) should be imbued with the XRay
+    /// "always instrument" attribute.
+    /// WARNING: This is a deprecated field and will go away in the future.
+    std::vector<std::string> XRayAlwaysInstrumentFiles;
+
+    /// Paths to the XRay "never instrument" files specifying which
+    /// objects (files, functions, variables) should be imbued with the XRay
+    /// "never instrument" attribute.
+    /// WARNING: This is a deprecated field and will go away in the future.
+    std::vector<std::string> XRayNeverInstrumentFiles;
+
+    /// Paths to the XRay attribute list files, specifying which objects
+    /// (files, functions, variables) should be imbued with the appropriate XRay
+    /// attribute(s).
+    std::vector<std::string> XRayAttrListFiles;
+
+    /// Paths to special case list files specifying which entities
+    /// (files, functions) should or should not be instrumented.
+    std::vector<std::string> ProfileListFiles;
+
+
+    CoreFoundationABI CFRuntime = CoreFoundationABI::Unspecified;
+
+    std::string ObjCConstantStringClass;
+
+    /// The name of the handler function to be called when -ftrapv is
+    /// specified.
+    ///
+    /// If none is specified, abort (GCC-compatible behaviour).
+    std::string OverflowHandler;
+
+    /// The module currently being compiled as specified by -fmodule-name.
+    std::string ModuleName;
+
+    /// The name of the current module, of which the main source file
+    /// is a part. If CompilingModule is set, we are compiling the interface
+    /// of this module, otherwise we are compiling an implementation file of
+    /// it. This starts as ModuleName in case -fmodule-name is provided and
+    /// changes during compilation to reflect the current module.
+    std::string CurrentModule;
+
+    /// The names of any features to enable in module 'requires' decls
+    /// in addition to the hard-coded list in Module.cpp and the target features.
+    ///
+    /// This list is sorted.
+    std::vector<std::string> ModuleFeatures;
+
+    /// Options for parsing comments.
+    CommentOptions CommentOpts;
+
+    /// A list of all -fno-builtin-* function names (e.g., memset).
+    std::vector<std::string> NoBuiltinFuncs;
+
+
+    /// Name of the IR file that contains the result of the OpenMP target
+    /// host code generation.
+    std::string OMPHostIRFile;
+
+    /// The user provided compilation unit ID, if non-empty. This is used to
+    /// externalize static variables which is needed to support accessing static
+    /// device variables in host code for single source offloading languages
+    /// like CUDA/HIP.
+    std::string CUID;
+
+    /// C++ ABI to compile with, if specified by the frontend through -fc++-abi=.
+    /// This overrides the default ABI used by the target.
+
+    /// Indicates whether the front-end is explicitly told that the
+    /// input is a header file (i.e. -x c-header).
+    bool IsHeaderFile = false;
+
+    /// The default stream kind used for HIP kernel launching.
+    GPUDefaultStreamKind GPUDefaultStream;
+
+    /// The seed used by the randomize structure layout feature.
+    std::string RandstructSeed;
+
+    /// Indicates whether to use target's platform-specific file separator when
+    /// __FILE__ macro is used and when concatenating filename with directory or
+    /// to use build environment environment's platform-specific file separator.
+    ///
+    /// The plaform-specific path separator is the backslash(\) for Windows and
+    /// forward slash (/) elsewhere.
+    bool UseTargetPathSeparator = false;
+
+    // Indicates whether we should keep all nullptr checks for pointers
+    // received as a result of a standard operator new (-fcheck-new)
+    bool CheckNew = false;
+
+    // In OpenACC mode, contains a user provided override for the _OPENACC macro.
+    // This exists so that we can override the macro value and test our incomplete
+    // implementation on real-world examples.
+    std::string OpenACCMacroOverride;
+
+    LangOptions();
+
+    /// Set language defaults for the given input language and
+    /// language standard in the given LangOptions object.
+    ///
+    /// \param Opts - The LangOptions object to set up.
+    /// \param Lang - The input language.
+    /// \param T - The target triple.
+    /// \param Includes - If the language requires extra headers to be implicitly
+    ///                   included, they will be appended to this list.
+    /// \param LangStd - The input language standard.
+
+    // Define accessors/mutators for language options of enumeration type.
+
+  /// Are we compiling a module?
+
+    /// Reset all of the options that are not considered when building a
+    /// module.
+    void resetNonModularOptions();
+
+    /// Is this a libc/libm function that is no longer recognized as a
+    /// builtin because a -fno-builtin-* option has been specified?
+
+
+    /// Return the OpenCL C or C++ version as a VersionTuple.
+
+    /// Return the OpenCL version that kernel language is compatible with
+    unsigned getOpenCLCompatibleVersion() const;
+
+    /// Return the OpenCL C or C++ for OpenCL language name and version
+    /// as a string.
+    std::string getOpenCLVersionString() const;
+
+    /// Returns true if functions without prototypes or functions with an
+    /// identifier list (aka K&R C functions) are not allowed.
+};
