@@ -1,4 +1,5 @@
 #include <vector>
+#include "Token.h"
 
 void Preprocessor::SuggestTypoedDirective(const Token& Tok,
     StringRef Directive) const {

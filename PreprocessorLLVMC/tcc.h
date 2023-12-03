@@ -367,11 +367,12 @@ extern long double strtold(const char* __nptr, char** __endptr);
 
 /* -------------------------------------------- */
 
+/*
 #include "libtcc.h"
 #include "elf.h"
 #include "stab.h"
 #include "dwarf.h"
-
+*/
 /* -------------------------------------------- */
 
 #ifndef PUB_FUNC /* functions used by tcc.c but not in libtcc.h */
@@ -462,6 +463,14 @@ extern long double strtold(const char* __nptr, char** __endptr);
 #endif
 
 /* -------------------------------------------- */
+
+
+//macros types
+typedef unsigned long long uint64_t;
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+
+#define LDOUBLE_SIZE 16
 
 #define INCLUDE_STACK_SIZE  32
 #define IFDEF_STACK_SIZE    64
@@ -606,7 +615,6 @@ typedef struct Section {
     int sh_addralign;        /* elf section alignment */
     int sh_entsize;          /* elf entry size */
     unsigned long sh_size;   /* section size (only used during output) */
-    addr_t sh_addr;          /* address at which the section is relocated */
     unsigned long sh_offset; /* file offset */
     int nb_hashed_syms;      /* used to resize the hash table */
     struct Section* link;    /* link to another section */
@@ -1200,7 +1208,6 @@ struct filespec {
 enum tcc_token {
     TOK_LAST = TOK_IDENT - 1
 #define DEF(id, str) ,id
-#include "tcctok.h"
 #undef DEF
 };
 
@@ -1442,7 +1449,6 @@ ST_FUNC int ieee_finite(double d);
 ST_FUNC int exact_log2p1(int i);
 ST_FUNC void test_lvalue(void);
 
-ST_FUNC ElfSym* elfsym(Sym*);
 ST_FUNC void update_storage(Sym* sym);
 ST_FUNC void put_extern_sym2(Sym* sym, int sh_num, addr_t value, unsigned long size, int can_add_underscore);
 ST_FUNC void put_extern_sym(Sym* sym, Section* section, addr_t value, unsigned long size);
@@ -1604,7 +1610,9 @@ ST_FUNC void build_got_entries(TCCState* s1, int got_sym); /* in tccelf.c */
 #endif
 #endif
 
-ST_FUNC void relocate(TCCState* s1, ElfW_Rel* rel, int type, unsigned char* ptr, addr_t addr, addr_t val);
+#define NB_REGS 25
+
+//ST_FUNC void relocate(TCCState* s1, ElfW_Rel* rel, int type, unsigned char* ptr, addr_t addr, addr_t val);
 
 /* ------------ xxx-gen.c ------------ */
 ST_DATA const char* const target_machine_defs;
@@ -1642,13 +1650,13 @@ static inline uint16_t read16le(unsigned char* p) {
 static inline void write16le(unsigned char* p, uint16_t x) {
     p[0] = x & 255;  p[1] = x >> 8 & 255;
 }
-static inline uint32_t read32le(unsigned char* p) {
-    return read16le(p) | (uint32_t)read16le(p + 2) << 16;
+static inline unsigned int read32le(unsigned char* p) {
+    return read16le(p) | (unsigned int)unsigned short(p + 2) << 16;
 }
-static inline void write32le(unsigned char* p, uint32_t x) {
+static inline void write32le(unsigned char* p, unsigned int x) {
     write16le(p, x);  write16le(p + 2, x >> 16);
 }
-static inline void add32le(unsigned char* p, int32_t x) {
+static inline void add32le(unsigned char* p, unsigned int x) {
     write32le(p, read32le(p) + x);
 }
 static inline uint64_t read64le(unsigned char* p) {
@@ -1657,7 +1665,7 @@ static inline uint64_t read64le(unsigned char* p) {
 static inline void write64le(unsigned char* p, uint64_t x) {
     write32le(p, x);  write32le(p + 4, x >> 32);
 }
-static inline void add64le(unsigned char* p, int64_t x) {
+static inline void add64le(unsigned char* p, unsigned long long x) {
     write64le(p, read64le(p) + x);
 }
 
@@ -1676,7 +1684,7 @@ ST_FUNC void gen_increment_tcov(SValue* sv);
 
 /* ------------ x86_64-gen.c ------------ */
 #ifdef TCC_TARGET_X86_64
-ST_FUNC void gen_addr64(int r, Sym* sym, int64_t c);
+ST_FUNC void gen_addr64(int r, Sym* sym, unsigned long long c);
 ST_FUNC void gen_opl(int op);
 #ifdef TCC_TARGET_PE
 ST_FUNC void gen_vla_result(int addr);

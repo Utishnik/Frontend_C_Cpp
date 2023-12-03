@@ -33,10 +33,19 @@
     <ClCompile Include="tcc_pars_atrribute.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="Preprocessor.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="StringRef.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tcc.h">
       <Filter>Исходные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="Token.h">
+      <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

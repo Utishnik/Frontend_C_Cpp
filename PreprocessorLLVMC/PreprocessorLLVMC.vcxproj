@@ -129,13 +129,16 @@
   <ItemGroup>
     <ClCompile Include="LangOption.cpp" />
     <ClCompile Include="Preproccesing.cpp" />
+    <ClCompile Include="Preprocessor.cpp" />
     <ClCompile Include="PreprocessorLLVMC.cpp" />
+    <ClCompile Include="StringRef.cpp" />
     <ClCompile Include="tcc_pars_atrribute.cpp" />
     <ClCompile Include="Token.cpp" />
     <ClCompile Include="value.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tcc.h" />
+    <ClInclude Include="Token.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

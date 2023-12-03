@@ -1,5 +1,6 @@
 //tcc code
 #include "tcc.h"
+
 static inline void next_nomacro1(void)
 {
     int t, c, is_long, len;
