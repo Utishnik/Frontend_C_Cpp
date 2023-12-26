@@ -33,18 +33,21 @@
     <ClCompile Include="tcc_pars_atrribute.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="Preprocessor.cpp">
-      <Filter>Исходные файлы</Filter>
+    <ClCompile Include="StringRef.h">
+      <Filter>Файлы заголовков</Filter>
     </ClCompile>
-    <ClCompile Include="StringRef.cpp">
+    <ClCompile Include="Preprocessor.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClCompile>
+    <ClCompile Include="tcc_memory.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="tcc.h">
-      <Filter>Исходные файлы</Filter>
-    </ClInclude>
     <ClInclude Include="Token.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="tcc.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,5 +1,10 @@
 #include <vector>
 #include "Token.h"
+#include "StringRef.h"
+#include "Preprocessor.h"
+#include <stdio.h>
+
+#define Cnt_Preprocessor_Der 8
 
 void Preprocessor::SuggestTypoedDirective(const Token& Tok,
     StringRef Directive) const {
@@ -7,9 +12,9 @@ void Preprocessor::SuggestTypoedDirective(const Token& Tok,
     // directives.
     if (getLangOpts().AsmPreprocessor) return;
 
-    std::vector<StringRef> Candidates = {
-        "if", "ifdef", "ifndef", "elif", "else", "endif"
-    };
+    StringRef Candidates;
+    Candidates.Data = (std::string*)malloc(sizeof(std::string)*Cnt_Preprocessor_Der);
+    
     if (LangOpts.C23 || LangOpts.CPlusPlus23)
         Candidates.insert(Candidates.end(), { "elifdef", "elifndef" });
 

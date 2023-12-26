@@ -1246,6 +1246,22 @@ PUB_FUNC void* tcc_realloc_debug(void* ptr, unsigned long size, const char* file
 PUB_FUNC char* tcc_strdup_debug(const char* str, const char* file, int line);
 #endif
 
+void *use_tcc_malloc(size_t size)
+{
+    void* res = malloc(size);
+    if(!res) 
+}
+
+void use_tcc_realloc(void *ptr,size_t new_size)
+{
+
+}
+
+void use_tcc_free(void* memory)
+{
+
+}
+
 #define free(p) use_tcc_free(p)
 #define malloc(s) use_tcc_malloc(s)
 #define realloc(p, s) use_tcc_realloc(p, s)

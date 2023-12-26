@@ -129,9 +129,10 @@
   <ItemGroup>
     <ClCompile Include="LangOption.cpp" />
     <ClCompile Include="Preproccesing.cpp" />
-    <ClCompile Include="Preprocessor.cpp" />
+    <ClCompile Include="Preprocessor.h" />
     <ClCompile Include="PreprocessorLLVMC.cpp" />
-    <ClCompile Include="StringRef.cpp" />
+    <ClCompile Include="StringRef.h" />
+    <ClCompile Include="tcc_memory.cpp" />
     <ClCompile Include="tcc_pars_atrribute.cpp" />
     <ClCompile Include="Token.cpp" />
     <ClCompile Include="value.cpp" />
